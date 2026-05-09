@@ -1,0 +1,96 @@
+version: '3.8'
+
+services:
+
+  # ─────────────────────────────────────────
+  # YOUR .NET 10 TAX FILING API
+  # ─────────────────────────────────────────
+  taxfiling-api:
+    build:
+      context: ./TaxFilingAPI
+      dockerfile: Dockerfile
+    container_name: taxfiling-api
+    ports:
+      - "8080:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8080
+      - ConnectionStrings__DefaultConnection=Server=sqlserver;Database=TaxFilingDB;User Id=sa;Password=TaxFiling@123;TrustServerCertificate=True;
+      - Anthropic__ApiKey=${ANTHROPIC_API_KEY}
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    networks:
+      - taxfiling-network
+    restart: unless-stopped
+
+  # ─────────────────────────────────────────
+  # SQL SERVER IN DOCKER
+  # ─────────────────────────────────────────
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-CU16-ubuntu-22.04
+    container_name: taxfiling-sqlserver
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=TaxFiling@123
+      - MSSQL_PID=Express
+    ports:
+      - "1433:1433"
+    healthcheck:
+      test: ["CMD", "/opt/mssql-tools18/bin/sqlcmd",
+             "-S", "localhost",
+             "-U", "sa",
+             "-P", "TaxFiling@123",
+             "-Q", "SELECT 1",
+             "-C"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - taxfiling-network
+    restart: unless-stopped
+
+  # ─────────────────────────────────────────
+  # PROMETHEUS — METRICS COLLECTION
+  # ─────────────────────────────────────────
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: taxfiling-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.enable-lifecycle'
+    networks:
+      - taxfiling-network
+    restart: unless-stopped
+
+  # ─────────────────────────────────────────
+  # GRAFANA — VISUALIZATION DASHBOARD
+  # ─────────────────────────────────────────
+  grafana:
+    image: grafana/grafana:latest
+    container_name: taxfiling-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin123
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana-storage:/var/lib/grafana
+    depends_on:
+      - prometheus
+    networks:
+      - taxfiling-network
+    restart: unless-stopped
+
+networks:
+  taxfiling-network:
+    driver: bridge
+
+volumes:
+  grafana-storage:
