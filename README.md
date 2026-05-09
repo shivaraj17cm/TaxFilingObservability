@@ -42,8 +42,6 @@ remediation of thread starvation and resource exhaustion issues.
 
 ## Architecture
 
-## Architecture
-
 ![Architecture Diagram](architecture.png)
 
 ---
