@@ -42,40 +42,9 @@ remediation of thread starvation and resource exhaustion issues.
 
 ## Architecture
 
-┌─────────────────────────────────────────────────────┐
-│                   CLIENT / LOAD TEST                 │
-└─────────────────────────┬───────────────────────────┘
-│ HTTP Requests
-┌─────────────────────────▼───────────────────────────┐
-│           .NET 10 Web API (Containerized)            │
-│                                                      │
-│  ┌─────────────┐ ┌─────────────┐ ┌───────────────┐  │
-│  │ Create Task │ │ Search Task │ │ Move Status   │  │
-│  └─────────────┘ └─────────────┘ └───────────────┘  │
-│                                                      │
-│  ┌──────────────────────────────────────────────┐   │
-│  │  Metrics Middleware (captures every request)  │   │
-│  │  Thread count · Request duration · Queue size │   │
-│  └──────────────────────────────────────────────┘   │
-└────────────┬─────────────────────┬──────────────────┘
-│                     │
-SQL Queries              Metrics /metrics
-┌────────────▼──────┐   ┌──────────▼──────────────────┐
-│   SQL Server      │   │       Prometheus             │
-│   (Task Data)     │   │   (Metrics Storage)          │
-└───────────────────┘   └──────────┬──────────────────┘
-│
-┌──────────▼──────────────────┐
-│         Grafana              │
-│   (Live Dashboard)           │
-└──────────┬──────────────────┘
-│ Threshold breach
-┌──────────▼──────────────────┐
-│      AI Diagnosis Layer      │
-│   (Claude API)               │
-│  Input:  last 60s metrics    │
-│  Output: root cause + fix    │
-└─────────────────────────────┘
+## Architecture
+
+![Architecture Diagram](architecture.png)
 
 ---
 
